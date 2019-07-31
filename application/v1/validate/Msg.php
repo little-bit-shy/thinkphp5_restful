@@ -5,9 +5,7 @@
  * Date: 2017/10/19
  * Time: 16:43
  */
-namespace app\index\validate;
-
-use think\Validate;
+namespace app\v1\validate;
 
 class Msg extends Validate
 {

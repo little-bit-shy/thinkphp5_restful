@@ -1,0 +1,12 @@
+{
+  "name": "接口文档",
+  "version": "1.0.0",
+  "description": "apidoc -i application/  -o doc/  -t template/",
+  "title": "接口文档",
+  "url": "http://118.31.189.17:82",
+  "sampleUrl": "http://118.31.189.17:82",
+  "template": {
+    "withCompare": true,
+    "withGenerator": true
+  }
+}

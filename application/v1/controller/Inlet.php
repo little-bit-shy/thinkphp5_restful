@@ -5,7 +5,8 @@
  * Date: 2017/10/19
  * Time: 16:07
  */
-namespace app\index\controller;
+
+namespace app\v1\controller;
 
 use think\controller\Rest;
 use think\Exception;
@@ -19,18 +20,43 @@ use think\Response;
 class Inlet extends Rest
 {
     /**
+     * @var array 请求数据
+     */
+    public $requestData = [];
+
+    /**
      * 预执行类栈
      */
     public $classStack = [
-        //Cors跨域验证
+        // Cors跨域验证
         'cors' => [
-            'class' => '\app\index\init\Cors',
-            'validation' => true
+            [
+                'class' => '\app\v1\init\Cors',
+                'validation' => true
+            ]
         ],
-        //登录状态相关验证
+        // 请求方法相关验证
+        'requestMethod' => [
+            [
+                'class' => '\app\v1\init\RequestMethod',
+                'validation' => false
+            ]
+        ],
+        // 登录状态相关验证
         'login' => [
-            'class' => '\app\index\init\Login',
-            'validation' => true
+            [
+                'class' => '\app\v1\init\Login',
+                'validation' => true
+            ]
+        ],
+        // 请求频率验证类
+        'requestFrequencyLimit' => [
+            [
+                'class' => '\app\v1\init\RequestFrequencyLimit',
+                'limit' => 10,
+                'second' => 1,
+                'validation' => true
+            ]
         ],
     ];
 
@@ -54,6 +80,12 @@ class Inlet extends Rest
      */
     protected function _initialize()
     {
+        // 请求数据获取
+        if (Request::instance()->isGet()) {
+            $this->requestData = Request::instance()->get();
+        } elseif (Request::instance()->isPost()) {
+            $this->requestData = Request::instance()->post();
+        }
     }
 
     /**
@@ -67,32 +99,29 @@ class Inlet extends Rest
 
     /**
      * 预执行类栈依次执行
-     * @return Response
      */
     protected function _classStack()
     {
         //填充$class
         $classStack = $this->classStack;
-        $request = Request::instance();
         foreach ($classStack as $key => $value) {
-            if (empty($value['scene']) || in_array($request->action(), $value['scene'])) {
-                //该场景需要验证，逻辑向下
-            } else {
-                //不在验证场景范围内,退出本次循环
+            if (empty($value)) {
+                //参数异常,退出本次循环
                 continue;
             }
-
-            //类的实例化
-            $class = new $value['class']();
-            //参数赋值
-            foreach ($value as $k => $v) {
-                if ($k == 'class') {
-                    continue;
+            foreach ($value as $kk => $vv) {
+                //类的实例化
+                $class = new $vv['class']();
+                //参数赋值
+                foreach ($vv as $k => $v) {
+                    if ($k == 'class') {
+                        continue;
+                    }
+                    $class->$k = $v;
                 }
-                $class->$k = $v;
+                //run方法运行
+                $class->run();
             }
-            //run方法运行
-            $return = $class->run();
         }
     }
 
@@ -121,11 +150,15 @@ class Inlet extends Rest
     {
         $content = [];
 
-        if (is_array($data))
+        if (is_string($data)) {
+            if ($data === '') {
+                $content['item'] = null;
+            } else {
+                $content['msg'] = $data;
+            }
+        } else {
             $content['item'] = $data;
-        else
-            $content['msg'] = $data;
-
+        }
         $content['status'] = $code;
 
         return $content;

@@ -7,7 +7,7 @@
  */
 namespace app\common\exception;
 
-use app\index\controller\Inlet;
+use app\v1\controller\Inlet;
 
 class Response extends \think\controller\Rest
 {
